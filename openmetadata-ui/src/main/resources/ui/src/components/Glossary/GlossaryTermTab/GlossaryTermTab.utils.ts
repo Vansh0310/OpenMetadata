@@ -35,12 +35,17 @@ export const resolveTotalTermsCount = async (
   data: unknown[],
   isStatusFilterActive: boolean,
   pagingResponseTotal: number | undefined,
-  glossaryFqn?: string
+  glossaryFqn?: string,
+  entityStatusParam?: string
 ): Promise<number> => {
   if (data.length === 0 && isStatusFilterActive) {
+    // Keep the active status filter applied, else this falls back to the
+    // glossary's unfiltered total instead of the true (possibly zero) count.
     const countResponse = await getFirstLevelGlossaryTermsPaginated(
       glossaryFqn || '',
-      0
+      0,
+      undefined,
+      entityStatusParam
     );
 
     return countResponse.paging?.total ?? 0;
@@ -61,5 +66,16 @@ export const shouldShowEmptyPlaceholder = (
   hasNoTerms: boolean,
   isSearchActive: boolean,
   totalTermsCount: number,
-  isTableLoading: boolean
-) => hasNoTerms && !isSearchActive && totalTermsCount === 0 && !isTableLoading;
+  isTableLoading: boolean,
+  hasUserChangedStatusFilter: boolean
+) => {
+  const isDefaultUnfilteredView =
+    !isSearchActive && !hasUserChangedStatusFilter;
+
+  return (
+    hasNoTerms &&
+    isDefaultUnfilteredView &&
+    totalTermsCount === 0 &&
+    !isTableLoading
+  );
+};
